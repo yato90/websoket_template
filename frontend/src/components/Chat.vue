@@ -13,7 +13,32 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 
+const props = defineProps(['nickname']);
+const ws = ref(null);
+const message = ref('');
+const messages = ref([]);
+const users = ref([]);
 
+onMounted(() => {
+    ws.value = new WebSocket('ws://localhost:3000');
+    ws.value.onopen = () => ws.value.send(JSON.stringify({ type: 'join', nickname: props.nickname }));
+    ws.value.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'message') messages.value.push(data);
+        if (data.type === 'users') users.value = data.users;
+    };
+});
+
+onUnmounted(() => {
+    ws.value.close();
+});
+
+const sendMessage = () => {
+    if (message.value.trim()) {
+        ws.value.send(JSON.stringify({ type: 'message', nickname: props.nickname, message: message.value }));
+        message.value = '';
+    }
+};
 </script>
 
 <style>
